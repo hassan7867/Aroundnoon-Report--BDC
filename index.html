@@ -12,7 +12,6 @@
   <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
 
   <style>
-    /* Better date input sizing in Safari */
     input[type="date"] { min-height: 2.5rem; }
   </style>
 </head>
@@ -24,8 +23,7 @@
     <header class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
       <div>
         <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Staff Supplied Analytics</h1>
-        <p class="text-slate-600">Bureau De Connect – Workforce Dashboard for Aroundnoon
-</p>
+        <p class="text-slate-600">Looker Studio–style dashboard · Global slicers · Real-time refresh simulation</p>
       </div>
       <div class="flex items-center gap-2">
         <span class="text-xs text-slate-500">Last refresh:</span>
@@ -95,29 +93,35 @@
     </section>
 
     <!-- KPIs -->
-    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
-        <div class="text-xs font-semibold text-slate-600">Total Staff Supplied</div>
-        <div id="kpiTotal" class="mt-2 text-3xl font-bold">0</div>
-        <div class="text-xs text-slate-500 mt-1">Sum of values after filters</div>
+        <div class="text-xs font-semibold text-slate-600">Average Staff per Active Day</div>
+        <div id="kpiAvg" class="mt-2 text-3xl font-bold">0</div>
+        <div class="text-xs text-slate-500 mt-1">Total shifts ÷ active days (after filters)</div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div class="text-xs font-semibold text-slate-600">Total Shifts Filled (person-shifts)</div>
+        <div id="kpiShifts" class="mt-2 text-3xl font-bold">0</div>
+        <div class="text-xs text-slate-500 mt-1">Sum of headcount per dept per day</div>
       </div>
 
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
         <div class="text-xs font-semibold text-slate-600">No. of Locations</div>
         <div id="kpiLocations" class="mt-2 text-3xl font-bold">0</div>
-        <div class="text-xs text-slate-500 mt-1">Distinct locations with any activity</div>
+        <div class="text-xs text-slate-500 mt-1">Distinct locations with any activity (&gt;0)</div>
       </div>
 
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
         <div class="text-xs font-semibold text-slate-600">No. of Departments</div>
         <div id="kpiDepts" class="mt-2 text-3xl font-bold">0</div>
-        <div class="text-xs text-slate-500 mt-1">Distinct departments with any activity</div>
+        <div class="text-xs text-slate-500 mt-1">Distinct departments with any activity (&gt;0)</div>
       </div>
 
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
         <div class="text-xs font-semibold text-slate-600">No. of Active Days</div>
         <div id="kpiDays" class="mt-2 text-3xl font-bold">0</div>
-        <div class="text-xs text-slate-500 mt-1">Distinct dates where total &gt; 0</div>
+        <div class="text-xs text-slate-500 mt-1">Distinct dates where daily total &gt; 0</div>
       </div>
     </section>
 
@@ -126,7 +130,7 @@
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 md:p-4">
         <div class="flex items-baseline justify-between px-1">
           <h2 class="font-bold">Location-wise Contribution</h2>
-          <span class="text-xs text-slate-500">Pie</span>
+          <span class="text-xs text-slate-500">Pie (Avg staff/day)</span>
         </div>
         <div id="chartPie" class="w-full" style="height: 360px;"></div>
       </div>
@@ -134,7 +138,7 @@
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 md:p-4">
         <div class="flex items-baseline justify-between px-1">
           <h2 class="font-bold">Department-wise View</h2>
-          <span class="text-xs text-slate-500">Grouped bar</span>
+          <span class="text-xs text-slate-500">Bar (Avg staff/day)</span>
         </div>
         <div id="chartDept" class="w-full" style="height: 360px;"></div>
       </div>
@@ -142,7 +146,7 @@
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 md:p-4">
         <div class="flex items-baseline justify-between px-1">
           <h2 class="font-bold">Daily Trend</h2>
-          <span class="text-xs text-slate-500">Line / Area</span>
+          <span class="text-xs text-slate-500">Line/Area (Daily totals)</span>
         </div>
         <div id="chartTrend" class="w-full" style="height: 360px;"></div>
       </div>
@@ -150,7 +154,7 @@
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 md:p-4">
         <div class="flex items-baseline justify-between px-1">
           <h2 class="font-bold">Staff Strength by Day</h2>
-          <span class="text-xs text-slate-500">Top 10</span>
+          <span class="text-xs text-slate-500">Top 10 (Daily totals)</span>
         </div>
         <div id="chartTopDays" class="w-full" style="height: 360px;"></div>
       </div>
@@ -213,9 +217,11 @@
       </div>
     </section>
 
-    <!-- Footer note -->
     <footer class="text-xs text-slate-500 pb-2">
-      Note: This dataset includes <span class="font-semibold">Supplied</span> only. “Fulfilment %” / “Variance vs Demanded” are intentionally omitted (future-ready code can add demanded later).
+      Definitions:
+      <span class="font-semibold">Total shifts (person-shifts)</span> = sum of headcount per department per day.
+      <span class="font-semibold">Average staff/day</span> = total shifts ÷ active days.
+      Unique people cannot be deduped without employee IDs.
     </footer>
   </div>
 
@@ -679,7 +685,7 @@
      * APP STATE
      ******************************************************************/
     const state = {
-      allRows: [],      // unified long-format
+      allRows: [],
       filteredRows: [],
       filters: {
         dateStart: null,
@@ -700,41 +706,29 @@
         page: 1,
         pageSize: 25
       },
-      charts: {
-        pie: null,
-        dept: null,
-        trend: null,
-        topDays: null
-      }
+      charts: { pie: null, dept: null, trend: null, topDays: null }
     };
 
     /******************************************************************
      * UTILITIES
      ******************************************************************/
     const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
-
     function pad2(n) { return String(n).padStart(2, "0"); }
 
     function ddmmyyyyToISO(ddmmyyyy) {
-      // Input: "01/08/2025" -> "2025-08-01"
       const [dd, mm, yyyy] = ddmmyyyy.split("/").map(s => s.trim());
       return `${yyyy}-${pad2(mm)}-${pad2(dd)}`;
     }
 
     function isoToDateObj(iso) {
-      // Safe local date (no timezone surprises): parse components
       const [y, m, d] = iso.split("-").map(Number);
       return new Date(y, m - 1, d);
     }
 
-    function monthNameFromISO(iso) {
-      const d = isoToDateObj(iso);
-      return MONTH_NAMES[d.getMonth()];
-    }
+    function monthNameFromISO(iso) { return MONTH_NAMES[isoToDateObj(iso).getMonth()]; }
 
     function weekLabelFromISO(iso) {
-      const d = isoToDateObj(iso);
-      const day = d.getDate();
+      const day = isoToDateObj(iso).getDate();
       if (day <= 7) return "Week 1";
       if (day <= 14) return "Week 2";
       if (day <= 21) return "Week 3";
@@ -743,7 +737,6 @@
     }
 
     function toNumberTreatBlankAsZero(x) {
-      // Blank/missing => 0; explicit "0" stays 0; numeric strings parsed
       if (x === undefined || x === null) return 0;
       const s = String(x).trim();
       if (s === "") return 0;
@@ -751,116 +744,82 @@
       return Number.isFinite(n) ? n : 0;
     }
 
-    function uniq(arr) {
-      return Array.from(new Set(arr));
-    }
+    function uniq(arr) { return Array.from(new Set(arr)); }
+    function sum(arr) { let t = 0; for (const v of arr) t += v; return t; }
 
-    function sum(arr) {
-      let t = 0;
-      for (const v of arr) t += v;
-      return t;
-    }
-
-    function fmtInt(n) {
-      return new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 }).format(n);
+    function fmtNum(n, maxDecimals = 1) {
+      return new Intl.NumberFormat("en-GB", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: maxDecimals
+      }).format(n);
     }
 
     function nowStamp() {
       const d = new Date();
-      return d.toLocaleString("en-GB", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+      return d.toLocaleString("en-GB", {
+        year: "numeric", month: "short", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", second: "2-digit"
+      });
     }
 
     /******************************************************************
      * 1) parseRawTables()
-     * Parse the raw “wide tables” embedded above into a structured array:
-     * [{ location, columns, rows: [{Date, ...deptValues}] }]
      ******************************************************************/
     function parseRawTables(rawWideTables) {
       const parsed = [];
-
       for (const [tableName, table] of Object.entries(rawWideTables)) {
         const { location, columns, data } = table;
-        const lines = data
-          .split("\n")
-          .map(l => l.trim())
-          .filter(l => l.length > 0);
+
+        const lines = data.split("\n").map(l => l.trim()).filter(Boolean);
 
         const rows = lines.map(line => {
-          // Split by comma, keep empties; then trim
           const parts = line.split(",").map(p => p.trim());
-          // Pad to columns length
           while (parts.length < columns.length) parts.push("");
-          // Build object
           const obj = {};
-          for (let i = 0; i < columns.length; i++) {
-            obj[columns[i]] = parts[i] ?? "";
-          }
+          for (let i = 0; i < columns.length; i++) obj[columns[i]] = parts[i] ?? "";
           return obj;
         });
 
         parsed.push({ tableName, location, columns, rows });
       }
-
       return parsed;
     }
 
     /******************************************************************
      * 2) normalizeToLongFormat()
-     * Convert wide parsed tables -> unified long-format array:
-     * { date:"YYYY-MM-DD", month:"August", week:"Week 1", location, department, value }
      ******************************************************************/
     function normalizeToLongFormat(parsedTables) {
       const out = [];
-
       for (const t of parsedTables) {
         const { location, columns, rows } = t;
         const deptCols = columns.filter(c => c !== "Date");
 
         for (const r of rows) {
           const iso = ddmmyyyyToISO(r.Date);
-
           const month = monthNameFromISO(iso);
           const week = weekLabelFromISO(iso);
 
           for (const dept of deptCols) {
             const value = toNumberTreatBlankAsZero(r[dept]);
-            out.push({
-              date: iso,
-              month,
-              week,
-              location,
-              department: dept,
-              value
-            });
+            out.push({ date: iso, month, week, location, department: dept, value });
           }
         }
       }
-
       return out;
     }
 
     /******************************************************************
      * fetchData()
-     * Simulated polling source (every 10s).
-     *
      * HOW TO SWITCH TO A REAL API LATER:
-     * - Replace the body of fetchData() with:
-     *   1) REST JSON:
-     *      const res = await fetch("https://your-api/staff-supplied");
-     *      return await res.json(); // must return long-format rows OR raw wide tables
-     *   2) WebSocket:
-     *      open WS, update state.allRows on message, then renderAll()
-     *
-     * For now, we rebuild from embedded RAW_WIDE_TABLES (in-memory).
+     * - Replace body with:
+     *   const res = await fetch("https://your-api/endpoint");
+     *   return await res.json(); // must return long-format rows OR raw wide tables
+     * - Or WebSocket: update state.allRows on message then renderAll()
      ******************************************************************/
     async function fetchData() {
-      // Simulate network delay
-      await new Promise(r => setTimeout(r, 80));
-
-      // Return parsed long-format from embedded tables (authoritative source)
+      await new Promise(r => setTimeout(r, 80)); // simulate network
       const parsed = parseRawTables(RAW_WIDE_TABLES);
-      const long = normalizeToLongFormat(parsed);
-      return long;
+      return normalizeToLongFormat(parsed);
     }
 
     /******************************************************************
@@ -873,46 +832,54 @@
       return rows.filter(r => {
         const t = isoToDateObj(r.date).getTime();
         if (t < start || t > end) return false;
-
         if (filters.month !== "All" && r.month !== filters.month) return false;
         if (filters.week !== "All" && r.week !== filters.week) return false;
         if (filters.location !== "All" && r.location !== filters.location) return false;
         if (filters.department !== "All" && r.department !== filters.department) return false;
-
         return true;
       });
+    }
+
+    /******************************************************************
+     * SHIFT & ACTIVE-DAY LOGIC
+     * - totalShifts = sum of headcount per dept per day (person-shifts)
+     * - activeDays = count of dates where daily total > 0
+     * - avgPerActiveDay = totalShifts / activeDays
+     ******************************************************************/
+    function computeActiveDayStats(rows) {
+      const byDateTotal = new Map();
+      for (const r of rows) byDateTotal.set(r.date, (byDateTotal.get(r.date) || 0) + r.value);
+
+      let activeDays = 0;
+      for (const v of byDateTotal.values()) if (v > 0) activeDays++;
+
+      const totalShifts = sum(rows.map(r => r.value));
+      const avgPerActiveDay = activeDays > 0 ? (totalShifts / activeDays) : 0;
+
+      return { byDateTotal, activeDays, totalShifts, avgPerActiveDay };
     }
 
     /******************************************************************
      * 4) computeKPIs()
      ******************************************************************/
     function computeKPIs(rows) {
-      const total = sum(rows.map(r => r.value));
+      const { activeDays, totalShifts, avgPerActiveDay } = computeActiveDayStats(rows);
 
-      // Active locations/departments: consider any value > 0
       const activeLocs = new Set();
       const activeDepts = new Set();
-      const activeDays = new Set();
-
-      // Aggregate by date total to determine active day
-      const byDate = new Map();
-
       for (const r of rows) {
         if (r.value > 0) {
           activeLocs.add(r.location);
           activeDepts.add(r.department);
         }
-        byDate.set(r.date, (byDate.get(r.date) || 0) + r.value);
-      }
-      for (const [date, v] of byDate.entries()) {
-        if (v > 0) activeDays.add(date);
       }
 
       return {
-        total,
+        activeDays,
+        totalShifts,
+        avgPerActiveDay,
         locations: activeLocs.size,
-        departments: activeDepts.size,
-        activeDays: activeDays.size
+        departments: activeDepts.size
       };
     }
 
@@ -940,21 +907,42 @@
 
     /******************************************************************
      * 5) buildCharts()
+     * IMPORTANT:
+     * - Pie + Dept bar use AVG staff/day (derived from total shifts / active days)
+     * - Trend + Top10 remain daily totals (more intuitive)
      ******************************************************************/
-    function buildCharts(rows) {
-      // Prepare instances
+    function buildCharts(rows, kpis) {
       state.charts.pie = ensureChart("chartPie", state.charts.pie);
       state.charts.dept = ensureChart("chartDept", state.charts.dept);
       state.charts.trend = ensureChart("chartTrend", state.charts.trend);
       state.charts.topDays = ensureChart("chartTopDays", state.charts.topDays);
 
-      // --- PIE: Location-wise contribution
-      const locMap = groupSum(rows, r => r.location);
-      const locData = sortedEntriesDesc(locMap).map(([name, value]) => ({ name, value }));
-      const pieTotal = sum(locData.map(d => d.value));
+      const activeDays = kpis.activeDays;
+
+      // ===== PIE: Location-wise Contribution (Avg staff/day) =====
+      const locShiftsMap = groupSum(rows, r => r.location); // total shifts per location
+      const locData = sortedEntriesDesc(locShiftsMap).map(([name, totalShifts]) => {
+        const avg = activeDays > 0 ? Math.floor(totalShifts / activeDays) : 0;
+
+        return { name, value: avg, totalShifts };
+      });
+
+      const avgTotal = sum(locData.map(d => d.value)); // should match kpis.avgPerActiveDay
 
       state.charts.pie.setOption({
-        tooltip: { trigger: "item", formatter: (p) => `${p.name}<br/>Supplied: <b>${fmtInt(p.value)}</b><br/>Share: <b>${p.percent}%</b>` },
+        tooltip: {
+          trigger: "item",
+          formatter: (p) => {
+            const d = p.data || {};
+            return [
+              `<b>${p.name}</b>`,
+              `Avg staff/day: <b>${fmtNum(p.value, 1)}</b>`,
+              `Total shifts (sum): <b>${fmtNum(d.totalShifts ?? 0, 0)}</b>`,
+              `Active days: <b>${fmtNum(activeDays, 0)}</b>`,
+              `Share (of avg): <b>${p.percent}%</b>`
+            ].join("<br/>");
+          }
+        },
         legend: { type: "scroll", bottom: 0 },
         series: [{
           type: "pie",
@@ -970,7 +958,7 @@
           left: "center",
           top: "center",
           style: {
-            text: `Total\n${fmtInt(pieTotal)}`,
+            text: `Avg/day Total\n${fmtNum(avgTotal, 1)}`,
             textAlign: "center",
             fontSize: 14,
             fontWeight: 700,
@@ -979,39 +967,60 @@
         }]
       }, { notMerge: true });
 
-      // --- BAR: Department-wise view
+      // ===== BAR: Department-wise View (Avg staff/day) =====
       const deptBreakdown = state.toggles.deptBreakdown;
       const allDepts = uniq(rows.map(r => r.department)).sort((a,b) => a.localeCompare(b));
       const allLocs = uniq(rows.map(r => r.location)).sort((a,b) => a.localeCompare(b));
 
       if (!deptBreakdown) {
-        const deptMap = groupSum(rows, r => r.department);
-        const deptSorted = sortedEntriesDesc(deptMap);
-        const x = deptSorted.map(d => d[0]);
-        const y = deptSorted.map(d => d[1]);
+        const deptShiftsMap = groupSum(rows, r => r.department); // total shifts per dept
+        const deptAvgMap = new Map();
+        for (const [dept, totalShifts] of deptShiftsMap.entries()) {
+          deptAvgMap.set(dept, activeDays > 0 ? (totalShifts / activeDays) : 0);
+        }
+
+        const deptSorted = Array.from(deptAvgMap.entries()).sort((a,b) => b[1] - a[1]);
+        const x = deptSorted.map(([dept]) => dept);
+        const y = deptSorted.map(([,avg]) => avg);
 
         state.charts.dept.setOption({
-          tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+          tooltip: {
+            trigger: "axis",
+            axisPointer: { type: "shadow" },
+            formatter: (params) => {
+              const p = params?.[0];
+              if (!p) return "";
+              const dept = p.axisValue;
+              const totalShifts = deptShiftsMap.get(dept) || 0;
+              const avg = deptAvgMap.get(dept) || 0;
+              return [
+                `<b>${dept}</b>`,
+                `Avg staff/day: <b>${fmtNum(avg, 1)}</b>`,
+                `Total shifts (sum): <b>${fmtNum(totalShifts, 0)}</b>`,
+                `Active days: <b>${fmtNum(activeDays, 0)}</b>`
+              ].join("<br/>");
+            }
+          },
           grid: { left: 40, right: 20, top: 30, bottom: 70, containLabel: true },
           xAxis: { type: "category", data: x, axisLabel: { rotate: 25 } },
           yAxis: { type: "value" },
-          series: [{
-            type: "bar",
-            data: y,
-            barMaxWidth: 48
-          }]
+          series: [{ type: "bar", data: y, barMaxWidth: 48 }]
         }, { notMerge: true });
+
       } else {
-        // x-axis: departments, series: each location
+        // x-axis departments; series by location; values = avg staff/day
         const x = allDepts;
         const series = allLocs.map(loc => {
           const locRows = rows.filter(r => r.location === loc);
-          const map = groupSum(locRows, r => r.department);
+          const deptShiftsMap = groupSum(locRows, r => r.department);
           return {
             name: loc,
             type: "bar",
             barMaxWidth: 36,
-            data: x.map(dept => map.get(dept) || 0)
+            data: x.map(dept => {
+              const totalShifts = deptShiftsMap.get(dept) || 0;
+              return activeDays > 0 ? (totalShifts / activeDays) : 0;
+            })
           };
         });
 
@@ -1025,9 +1034,9 @@
         }, { notMerge: true });
       }
 
-      // --- LINE/AREA: Daily trend
+      // ===== LINE/AREA: Daily Trend (Daily totals) =====
       const trendBreakdown = state.toggles.trendBreakdown;
-      const dates = uniq(rows.map(r => r.date)).sort(); // ISO sorts chronologically
+      const dates = uniq(rows.map(r => r.date)).sort();
 
       if (!trendBreakdown) {
         const byDate = groupSum(rows, r => r.date);
@@ -1038,23 +1047,14 @@
           grid: { left: 40, right: 20, top: 30, bottom: 50, containLabel: true },
           xAxis: { type: "category", data: dates, axisLabel: { formatter: (v) => v.slice(5) } },
           yAxis: { type: "value" },
-          series: [{
-            type: "line",
-            data: y,
-            smooth: true,
-            areaStyle: {}
-          }]
+          series: [{ type: "line", data: y, smooth: true, areaStyle: {} }]
         }, { notMerge: true });
+
       } else {
         const series = allLocs.map(loc => {
           const locRows = rows.filter(r => r.location === loc);
           const byDate = groupSum(locRows, r => r.date);
-          return {
-            name: loc,
-            type: "line",
-            data: dates.map(d => byDate.get(d) || 0),
-            smooth: true
-          };
+          return { name: loc, type: "line", data: dates.map(d => byDate.get(d) || 0), smooth: true };
         });
 
         state.charts.trend.setOption({
@@ -1067,7 +1067,7 @@
         }, { notMerge: true });
       }
 
-      // --- BAR: Top 10 days by total supplied
+      // ===== BAR: Top 10 Days (Daily totals) =====
       const byDateTotals = groupSum(rows, r => r.date);
       const top10 = sortedEntriesDesc(byDateTotals).slice(0, 10);
       const topDates = top10.map(([d]) => d).reverse();
@@ -1077,21 +1077,15 @@
         tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
         grid: { left: 40, right: 20, top: 30, bottom: 50, containLabel: true },
         xAxis: { type: "value" },
-        yAxis: { type: "category", data: topDates, axisLabel: { formatter: (v) => v } },
-        series: [{
-          type: "bar",
-          data: topVals,
-          barMaxWidth: 32
-        }]
+        yAxis: { type: "category", data: topDates },
+        series: [{ type: "bar", data: topVals, barMaxWidth: 32 }]
       }, { notMerge: true });
     }
 
     /******************************************************************
      * 6) buildTable()
-     * Vanilla: search, sort, paginate, export CSV.
      ******************************************************************/
     function buildTable(rows) {
-      // Apply search
       const q = state.table.search.trim().toLowerCase();
       let view = rows;
 
@@ -1102,26 +1096,16 @@
         });
       }
 
-      // Sort
       const { sortKey, sortDir } = state.table;
       const dirMul = sortDir === "asc" ? 1 : -1;
 
       view = view.slice().sort((a, b) => {
-        let va = a[sortKey];
-        let vb = b[sortKey];
-
-        if (sortKey === "value") {
-          va = Number(va); vb = Number(vb);
-          return (va - vb) * dirMul;
-        }
-        // Date is ISO string -> lexical sort ok
-        if (typeof va === "string" && typeof vb === "string") {
-          return va.localeCompare(vb) * dirMul;
-        }
+        let va = a[sortKey], vb = b[sortKey];
+        if (sortKey === "value") return (Number(va) - Number(vb)) * dirMul;
+        if (typeof va === "string" && typeof vb === "string") return va.localeCompare(vb) * dirMul;
         return 0;
       });
 
-      // Pagination
       const pageSize = state.table.pageSize;
       const total = view.length;
       const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -1132,7 +1116,6 @@
       const end = start + pageSize;
       const slice = view.slice(start, end);
 
-      // Render rows
       const tbody = document.getElementById("tableBody");
       tbody.innerHTML = "";
 
@@ -1145,22 +1128,19 @@
           <td class="px-3 py-2 whitespace-nowrap">${r.week}</td>
           <td class="px-3 py-2 whitespace-nowrap">${r.location}</td>
           <td class="px-3 py-2 whitespace-nowrap">${r.department}</td>
-          <td class="px-3 py-2 whitespace-nowrap text-right font-semibold">${fmtInt(r.value)}</td>
+          <td class="px-3 py-2 whitespace-nowrap text-right font-semibold">${fmtNum(r.value, 0)}</td>
         `;
         tbody.appendChild(tr);
       }
 
-      // Info + controls
       document.getElementById("tableInfo").textContent =
-        total === 0
-          ? "No rows match the current filters/search."
-          : `Showing ${start + 1}–${Math.min(end, total)} of ${total} rows`;
+        total === 0 ? "No rows match the current filters/search."
+                    : `Showing ${start + 1}–${Math.min(end, total)} of ${total} rows`;
 
       document.getElementById("pageIndicator").textContent = `Page ${page} of ${totalPages}`;
       document.getElementById("prevPage").disabled = page <= 1;
       document.getElementById("nextPage").disabled = page >= totalPages;
 
-      // Sort icons
       const keys = ["date","month","week","location","department","value"];
       for (const k of keys) {
         const el = document.getElementById(`sortIcon-${k}`);
@@ -1169,7 +1149,6 @@
         el.textContent = sortDir === "asc" ? " ▲" : " ▼";
       }
 
-      // Store a copy for CSV export (full "view", not just page)
       state.table._lastViewForExport = view;
     }
 
@@ -1207,22 +1186,19 @@
     function renderAll() {
       state.filteredRows = applyFilters(state.allRows, state.filters);
 
-      // KPIs
       const kpis = computeKPIs(state.filteredRows);
-      document.getElementById("kpiTotal").textContent = fmtInt(kpis.total);
-      document.getElementById("kpiLocations").textContent = fmtInt(kpis.locations);
-      document.getElementById("kpiDepts").textContent = fmtInt(kpis.departments);
-      document.getElementById("kpiDays").textContent = fmtInt(kpis.activeDays);
+      document.getElementById("kpiAvg").textContent = fmtNum(Math.floor(kpis.avgPerActiveDay), 0);
+      document.getElementById("kpiShifts").textContent = fmtNum(kpis.totalShifts, 0);
+      document.getElementById("kpiLocations").textContent = fmtNum(kpis.locations, 0);
+      document.getElementById("kpiDepts").textContent = fmtNum(kpis.departments, 0);
+      document.getElementById("kpiDays").textContent = fmtNum(kpis.activeDays, 0);
 
-      // Charts
-      buildCharts(state.filteredRows);
-
-      // Table
+      buildCharts(state.filteredRows, kpis);
       buildTable(state.filteredRows);
     }
 
     /******************************************************************
-     * Populate slicers
+     * Controls
      ******************************************************************/
     function setSelectOptions(selectEl, options, includeAll = true) {
       selectEl.innerHTML = "";
@@ -1248,7 +1224,6 @@
       const locationSelect = document.getElementById("locationSelect");
       const deptSelect = document.getElementById("deptSelect");
 
-      // Derive option sets from ALL rows
       const months = uniq(state.allRows.map(r => r.month))
         .filter(m => ["August","September","October","November"].includes(m))
         .sort((a,b) => MONTH_NAMES.indexOf(a) - MONTH_NAMES.indexOf(b));
@@ -1262,7 +1237,6 @@
       setSelectOptions(locationSelect, locations, true);
       setSelectOptions(deptSelect, depts, true);
 
-      // Date bounds from data
       const allDates = uniq(state.allRows.map(r => r.date)).sort();
       const minDate = allDates[0];
       const maxDate = allDates[allDates.length - 1];
@@ -1270,16 +1244,13 @@
       dateStart.min = minDate; dateStart.max = maxDate;
       dateEnd.min = minDate; dateEnd.max = maxDate;
 
-      // Defaults (full range)
       state.filters.dateStart = minDate;
       state.filters.dateEnd = maxDate;
       dateStart.value = minDate;
       dateEnd.value = maxDate;
 
-      // Bind events
       dateStart.addEventListener("change", () => {
         state.filters.dateStart = dateStart.value || minDate;
-        // keep end >= start
         if (dateEnd.value && dateEnd.value < dateStart.value) {
           dateEnd.value = dateStart.value;
           state.filters.dateEnd = dateEnd.value;
@@ -1290,7 +1261,6 @@
 
       dateEnd.addEventListener("change", () => {
         state.filters.dateEnd = dateEnd.value || maxDate;
-        // keep end >= start
         if (dateStart.value && dateEnd.value < dateStart.value) {
           dateStart.value = dateEnd.value;
           state.filters.dateStart = dateStart.value;
@@ -1299,32 +1269,12 @@
         renderAll();
       });
 
-      monthSelect.addEventListener("change", () => {
-        state.filters.month = monthSelect.value;
-        state.table.page = 1;
-        renderAll();
-      });
-
-      weekSelect.addEventListener("change", () => {
-        state.filters.week = weekSelect.value;
-        state.table.page = 1;
-        renderAll();
-      });
-
-      locationSelect.addEventListener("change", () => {
-        state.filters.location = locationSelect.value;
-        state.table.page = 1;
-        renderAll();
-      });
-
-      deptSelect.addEventListener("change", () => {
-        state.filters.department = deptSelect.value;
-        state.table.page = 1;
-        renderAll();
-      });
+      monthSelect.addEventListener("change", () => { state.filters.month = monthSelect.value; state.table.page = 1; renderAll(); });
+      weekSelect.addEventListener("change", () => { state.filters.week = weekSelect.value; state.table.page = 1; renderAll(); });
+      locationSelect.addEventListener("change", () => { state.filters.location = locationSelect.value; state.table.page = 1; renderAll(); });
+      deptSelect.addEventListener("change", () => { state.filters.department = deptSelect.value; state.table.page = 1; renderAll(); });
 
       document.getElementById("resetBtn").addEventListener("click", () => {
-        // Reset slicers to defaults
         state.filters.month = "All";
         state.filters.week = "All";
         state.filters.location = "All";
@@ -1339,8 +1289,6 @@
         dateStart.value = minDate;
         dateEnd.value = maxDate;
 
-        // Reset toggles? (keep as-is; feels more “Looker-like”)
-        // Reset table
         state.table.search = "";
         state.table.sortKey = "date";
         state.table.sortDir = "asc";
@@ -1350,21 +1298,11 @@
         renderAll();
       });
 
-      // Toggles
       const toggleDept = document.getElementById("toggleDeptBreakdown");
       const toggleTrend = document.getElementById("toggleTrendBreakdown");
+      toggleDept.addEventListener("change", () => { state.toggles.deptBreakdown = toggleDept.checked; renderAll(); });
+      toggleTrend.addEventListener("change", () => { state.toggles.trendBreakdown = toggleTrend.checked; renderAll(); });
 
-      toggleDept.addEventListener("change", () => {
-        state.toggles.deptBreakdown = toggleDept.checked;
-        renderAll();
-      });
-
-      toggleTrend.addEventListener("change", () => {
-        state.toggles.trendBreakdown = toggleTrend.checked;
-        renderAll();
-      });
-
-      // Table controls
       const tableSearch = document.getElementById("tableSearch");
       tableSearch.addEventListener("input", () => {
         state.table.search = tableSearch.value;
@@ -1389,7 +1327,6 @@
         buildTable(state.filteredRows);
       });
 
-      // Sorting by clicking header
       document.querySelectorAll("thead th[data-sort]").forEach(th => {
         th.addEventListener("click", () => {
           const key = th.getAttribute("data-sort");
@@ -1409,7 +1346,6 @@
         exportToCSV(rowsForExport);
       });
 
-      // Resize charts on window resize
       window.addEventListener("resize", () => {
         for (const c of Object.values(state.charts)) {
           if (c && typeof c.resize === "function") c.resize();
@@ -1421,12 +1357,10 @@
      * 8) startAutoRefresh()
      ******************************************************************/
     function startAutoRefresh() {
-      // Poll every 10 seconds (simulation)
       setInterval(async () => {
         const newRows = await fetchData();
         state.allRows = newRows;
 
-        // Keep current filters; if date range is now out-of-bounds, clamp
         const dates = uniq(state.allRows.map(r => r.date)).sort();
         const minDate = dates[0];
         const maxDate = dates[dates.length - 1];
@@ -1437,11 +1371,11 @@
         if (ds < minDate) state.filters.dateStart = minDate;
         if (de > maxDate) state.filters.dateEnd = maxDate;
 
-        // Update UI date bounds silently (don’t override user-selected values unless invalid)
         const dateStart = document.getElementById("dateStart");
         const dateEnd = document.getElementById("dateEnd");
         dateStart.min = minDate; dateStart.max = maxDate;
         dateEnd.min = minDate; dateEnd.max = maxDate;
+
         if (!dateStart.value || dateStart.value < minDate) dateStart.value = state.filters.dateStart;
         if (!dateEnd.value || dateEnd.value > maxDate) dateEnd.value = state.filters.dateEnd;
 
@@ -1456,7 +1390,6 @@
     (async function init() {
       state.allRows = await fetchData();
       document.getElementById("lastRefresh").textContent = nowStamp();
-
       setUpControls();
       renderAll();
       startAutoRefresh();
