@@ -1,0 +1,1466 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AroundNoon — Staff Supplied Analytics (Aug–Nov 2025)</title>
+
+  <!-- Tailwind CSS (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Apache ECharts (CDN) -->
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+
+  <style>
+    /* Better date input sizing in Safari */
+    input[type="date"] { min-height: 2.5rem; }
+  </style>
+</head>
+
+<body class="bg-slate-50 text-slate-900">
+  <div class="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
+
+    <!-- Header -->
+    <header class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+      <div>
+        <h1 class="text-2xl md:text-3xl font-bold tracking-tight">Staff Supplied Analytics</h1>
+        <p class="text-slate-600">Bureau De Connect – Workforce Dashboard for Aroundnoon
+</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-500">Last refresh:</span>
+        <span id="lastRefresh" class="text-xs font-medium text-slate-700">—</span>
+      </div>
+    </header>
+
+    <!-- Controls -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-5">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-3">
+        <!-- Date range -->
+        <div class="lg:col-span-2">
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Date range</label>
+          <div class="grid grid-cols-2 gap-2">
+            <input id="dateStart" type="date" class="w-full rounded-xl border-slate-200 focus:border-slate-400 focus:ring-0" />
+            <input id="dateEnd" type="date" class="w-full rounded-xl border-slate-200 focus:border-slate-400 focus:ring-0" />
+          </div>
+        </div>
+
+        <!-- Month -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Month</label>
+          <select id="monthSelect" class="w-full rounded-xl border-slate-200 focus:border-slate-400 focus:ring-0"></select>
+        </div>
+
+        <!-- Week -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Week</label>
+          <select id="weekSelect" class="w-full rounded-xl border-slate-200 focus:border-slate-400 focus:ring-0"></select>
+        </div>
+
+        <!-- Location -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Location</label>
+          <select id="locationSelect" class="w-full rounded-xl border-slate-200 focus:border-slate-400 focus:ring-0"></select>
+        </div>
+
+        <!-- Department -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Department</label>
+          <select id="deptSelect" class="w-full rounded-xl border-slate-200 focus:border-slate-400 focus:ring-0"></select>
+        </div>
+      </div>
+
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mt-4">
+        <div class="flex items-center gap-3">
+          <button id="resetBtn" class="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800">
+            Reset filters
+          </button>
+          <div class="text-xs text-slate-500">
+            Tip: charts update instantly (global slicers apply to <span class="font-semibold">all</span> visuals).
+          </div>
+        </div>
+
+        <!-- Toggles -->
+        <div class="flex flex-wrap items-center gap-4">
+          <label class="flex items-center gap-2 text-sm text-slate-700">
+            <input id="toggleDeptBreakdown" type="checkbox" class="rounded border-slate-300" />
+            Dept bar: breakdown by location
+          </label>
+          <label class="flex items-center gap-2 text-sm text-slate-700">
+            <input id="toggleTrendBreakdown" type="checkbox" class="rounded border-slate-300" />
+            Trend: breakdown by location
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- KPIs -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div class="text-xs font-semibold text-slate-600">Total Staff Supplied</div>
+        <div id="kpiTotal" class="mt-2 text-3xl font-bold">0</div>
+        <div class="text-xs text-slate-500 mt-1">Sum of values after filters</div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div class="text-xs font-semibold text-slate-600">No. of Locations</div>
+        <div id="kpiLocations" class="mt-2 text-3xl font-bold">0</div>
+        <div class="text-xs text-slate-500 mt-1">Distinct locations with any activity</div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div class="text-xs font-semibold text-slate-600">No. of Departments</div>
+        <div id="kpiDepts" class="mt-2 text-3xl font-bold">0</div>
+        <div class="text-xs text-slate-500 mt-1">Distinct departments with any activity</div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4">
+        <div class="text-xs font-semibold text-slate-600">No. of Active Days</div>
+        <div id="kpiDays" class="mt-2 text-3xl font-bold">0</div>
+        <div class="text-xs text-slate-500 mt-1">Distinct dates where total &gt; 0</div>
+      </div>
+    </section>
+
+    <!-- Charts -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 md:p-4">
+        <div class="flex items-baseline justify-between px-1">
+          <h2 class="font-bold">Location-wise Contribution</h2>
+          <span class="text-xs text-slate-500">Pie</span>
+        </div>
+        <div id="chartPie" class="w-full" style="height: 360px;"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 md:p-4">
+        <div class="flex items-baseline justify-between px-1">
+          <h2 class="font-bold">Department-wise View</h2>
+          <span class="text-xs text-slate-500">Grouped bar</span>
+        </div>
+        <div id="chartDept" class="w-full" style="height: 360px;"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 md:p-4">
+        <div class="flex items-baseline justify-between px-1">
+          <h2 class="font-bold">Daily Trend</h2>
+          <span class="text-xs text-slate-500">Line / Area</span>
+        </div>
+        <div id="chartTrend" class="w-full" style="height: 360px;"></div>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 md:p-4">
+        <div class="flex items-baseline justify-between px-1">
+          <h2 class="font-bold">Staff Strength by Day</h2>
+          <span class="text-xs text-slate-500">Top 10</span>
+        </div>
+        <div id="chartTopDays" class="w-full" style="height: 360px;"></div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-5 space-y-3">
+      <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-3">
+        <div>
+          <h2 class="font-bold">Detailed Daily Breakdown</h2>
+          <p class="text-xs text-slate-500">Search, sort, paginate, export CSV (client-side).</p>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-2 sm:items-center">
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-semibold text-slate-600">Search</label>
+            <input id="tableSearch" type="text" placeholder="e.g. Soho, Hygiene, 2025-10-14"
+              class="w-full sm:w-72 rounded-xl border-slate-200 focus:border-slate-400 focus:ring-0" />
+          </div>
+
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-semibold text-slate-600">Rows</label>
+            <select id="pageSize" class="rounded-xl border-slate-200 focus:border-slate-400 focus:ring-0">
+              <option value="10">10</option>
+              <option value="25" selected>25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+
+          <button id="exportCsvBtn" class="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-white border border-slate-200 text-slate-900 text-sm font-semibold hover:bg-slate-50">
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div class="overflow-auto border border-slate-200 rounded-xl">
+        <table class="min-w-full text-sm">
+          <thead class="bg-slate-100 text-slate-700">
+            <tr>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="date">Date <span class="opacity-60" id="sortIcon-date"></span></th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="month">Month <span class="opacity-60" id="sortIcon-month"></span></th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="week">Week <span class="opacity-60" id="sortIcon-week"></span></th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="location">Location <span class="opacity-60" id="sortIcon-location"></span></th>
+              <th class="px-3 py-2 text-left cursor-pointer select-none" data-sort="department">Department <span class="opacity-60" id="sortIcon-department"></span></th>
+              <th class="px-3 py-2 text-right cursor-pointer select-none" data-sort="value">Staff Supplied <span class="opacity-60" id="sortIcon-value"></span></th>
+            </tr>
+          </thead>
+          <tbody id="tableBody" class="divide-y divide-slate-200"></tbody>
+        </table>
+      </div>
+
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+        <div id="tableInfo" class="text-xs text-slate-600">—</div>
+        <div class="flex items-center gap-2">
+          <button id="prevPage" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm hover:bg-slate-50">Prev</button>
+          <span id="pageIndicator" class="text-sm text-slate-700">Page 1</span>
+          <button id="nextPage" class="px-3 py-1.5 rounded-lg border border-slate-200 text-sm hover:bg-slate-50">Next</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Footer note -->
+    <footer class="text-xs text-slate-500 pb-2">
+      Note: This dataset includes <span class="font-semibold">Supplied</span> only. “Fulfilment %” / “Variance vs Demanded” are intentionally omitted (future-ready code can add demanded later).
+    </footer>
+  </div>
+
+  <script>
+    /******************************************************************
+     * RAW WIDE TABLES — EMBEDDED EXACTLY AS PROVIDED (do not edit)
+     ******************************************************************/
+    const RAW_WIDE_TABLES = {
+      "AUGUST 2025 — SLOUGH": {
+        location: "AROUNDNOON SLOUGH",
+        columns: ["Date", "Production", "Warehouse", "Dispatch", "Prep"],
+        data: `
+01/08/2025, ,3, ,
+02/08/2025, ,4, ,
+03/08/2025, ,5, ,
+04/08/2025, ,4, ,
+05/08/2025, ,4, ,
+06/08/2025, ,4, ,
+07/08/2025, ,5, ,
+08/08/2025, ,4, ,
+09/08/2025, ,5, ,
+10/08/2025, ,5, ,
+11/08/2025, ,5,1, ,
+12/08/2025, ,3, ,
+13/08/2025, ,3, ,
+14/08/2025, ,4, ,
+15/08/2025, ,3, ,
+16/08/2025, ,3, ,1
+17/08/2025, ,5, ,1
+18/08/2025, ,4, ,1
+19/08/2025, ,4, ,1
+20/08/2025, ,4, ,1
+21/08/2025, ,4, ,1
+22/08/2025, ,3, ,1
+23/08/2025, ,4, ,1
+24/08/2025, ,5, ,1
+25/08/2025, ,4, ,2
+26/08/2025, ,4, ,1
+27/08/2025, ,5, ,
+28/08/2025, ,4, ,
+29/08/2025, ,3, ,
+30/08/2025, ,4, ,
+31/08/2025,6,4, ,
+        `.trim()
+      },
+
+      "AUGUST 2025 — SOHO": {
+        location: "AROUNDNOON SOHO",
+        columns: ["Date", "Production", "Dispatch", "Prep", "Goods In", "Hygiene"],
+        data: `
+01/08/2025,0,0,2,1,1
+02/08/2025,17,0,4,5,4
+03/08/2025,13,0,3,2,4
+04/08/2025,14,5,4,2,2
+05/08/2025,17,0,2,2,4
+06/08/2025,19,0,0,2,4
+07/08/2025,5,0,0,1,3
+08/08/2025,0,0,0,2,1
+09/08/2025,11,0,2,5,6
+10/08/2025,10,0,2,1,4
+11/08/2025,16,2,1,2,6
+12/08/2025,18,0,2,2,6
+13/08/2025,19,0,1,3,4
+14/08/2025,8,0,1,1,3
+15/08/2025,0,0,0,2,3
+16/08/2025,11,0,0,5,3
+17/08/2025,20,0,1,1,2
+18/08/2025,14,3,4,2,5
+19/08/2025,16,1,2,2,5
+20/08/2025,21,0,2,3,2
+21/08/2025,9,0,0,0,4
+22/08/2025,1,0,0,0,6
+23/08/2025,14,0,0,4,0
+24/08/2025,27,2,2,3,4
+25/08/2025,17,0,0,1,3
+26/08/2025,38,1,3,3,8
+27/08/2025,34,0,3,3,4
+28/08/2025,16,0,3,0,5
+29/08/2025,0,0,2,1,3
+30/08/2025,20,0,4,5,5
+31/08/2025,34,1,3,2,5
+        `.trim()
+      },
+
+      "AUGUST 2025 — NEWRY": {
+        location: "AROUNDNOON NEWRY",
+        columns: ["Date", "Production"],
+        data: `
+01/08/2025,0
+02/08/2025,0
+03/08/2025,0
+04/08/2025,0
+05/08/2025,0
+06/08/2025,0
+07/08/2025,0
+08/08/2025,0
+09/08/2025,0
+10/08/2025,0
+11/08/2025,0
+12/08/2025,0
+13/08/2025,0
+14/08/2025,0
+15/08/2025,0
+16/08/2025,0
+17/08/2025,0
+18/08/2025,0
+19/08/2025,0
+20/08/2025,0
+21/08/2025,0
+22/08/2025,0
+23/08/2025,0
+24/08/2025,0
+25/08/2025,0
+26/08/2025,0
+27/08/2025,6
+28/08/2025,8
+29/08/2025,7
+30/08/2025,0
+31/08/2025,6
+        `.trim()
+      },
+
+      "SEPTEMBER 2025 — SLOUGH": {
+        location: "AROUNDNOON SLOUGH",
+        columns: ["Date", "Production", "Warehouse", "Prep"],
+        data: `
+01/09/2025,7,5,0
+02/09/2025,6,4,0
+03/09/2025,6,4,0
+04/09/2025,6,5,0
+05/09/2025,0,4,0
+06/09/2025,3,4,0
+07/09/2025,9,4,0
+08/09/2025,3,5,0
+09/09/2025,0,5,0
+10/09/2025,0,4,0
+11/09/2025,0,4,0
+12/09/2025,0,4,0
+13/09/2025,0,4,0
+14/09/2025,0,4,0
+15/09/2025,3,5,0
+16/09/2025,5,4,1
+17/09/2025,5,4,1
+18/09/2025,2,5,1
+19/09/2025,0,3,1
+20/09/2025,5,4,0
+21/09/2025,4,5,0
+22/09/2025,2,4,0
+23/09/2025,0,5,0
+24/09/2025,0,5,0
+25/09/2025,0,7,0
+26/09/2025,0,2,0
+27/09/2025,0,5,0
+28/09/2025,0,4,0
+29/09/2025,5,3,0
+30/09/2025,5,5,0
+        `.trim()
+      },
+
+      "SEPTEMBER 2025 — SOHO": {
+        location: "AROUNDNOON SOHO",
+        columns: ["Date", "Production", "Dispatch", "Prep", "Goods In", "Hygiene"],
+        data: `
+01/09/2025,40,9,3,1,7
+02/09/2025,40,1,1,2,6
+03/09/2025,37,0,3,3,3
+04/09/2025,19,0,1,1,6
+05/09/2025,11,0,1,2,1
+06/09/2025,34,3,5,4,3
+07/09/2025,43,1,4,3,7
+08/09/2025,42,4,6,3,5
+09/09/2025,48,0,4,3,11
+10/09/2025,36,0,4,2,5
+11/09/2025,21,1,4,2,6
+12/09/2025,7,0,2,1,2
+13/09/2025,26,1,5,4,4
+14/09/2025,60,5,6,3,6
+15/09/2025,45,4,5,2,5
+16/09/2025,57,3,4,2,8
+17/09/2025,37,0,5,2,6
+18/09/2025,24,0,3,0,6
+19/09/2025,10,1,2,1,4
+20/09/2025,45,5,5,5,7
+21/09/2025,37,7,3,2,5
+22/09/2025,42,7,7,3,3
+23/09/2025,46,8,5,2,8
+24/09/2025,24,5,5,2,7
+25/09/2025,16,3,4,1,6
+26/09/2025,12,6,2,0,3
+27/09/2025,50,6,8,4,7
+28/09/2025,38,6,3,2,5
+29/09/2025,46,11,6,2,4
+30/09/2025,51,7,3,1,6
+        `.trim()
+      },
+
+      "SEPTEMBER 2025 — NEWRY": {
+        location: "AROUNDNOON NEWRY",
+        columns: ["Date", "Production"],
+        data: `
+01/09/2025,5
+02/09/2025,12
+03/09/2025,10
+04/09/2025,9
+05/09/2025,7
+06/09/2025,4
+07/09/2025,7
+08/09/2025,8
+09/09/2025,8
+10/09/2025,9
+11/09/2025,9
+12/09/2025,9
+13/09/2025,4
+14/09/2025,9
+15/09/2025,10
+16/09/2025,11
+17/09/2025,9
+18/09/2025,9
+19/09/2025,5
+20/09/2025,2
+21/09/2025,8
+22/09/2025,8
+23/09/2025,9
+24/09/2025,9
+25/09/2025,9
+26/09/2025,7
+27/09/2025,3
+28/09/2025,9
+29/09/2025,11
+30/09/2025,12
+        `.trim()
+      },
+
+      "OCTOBER 2025 — SLOUGH": {
+        location: "AROUNDNOON SLOUGH",
+        columns: ["Date", "Production", "Warehouse"],
+        data: `
+01/10/2025,4,3
+02/10/2025,5,4
+03/10/2025,0,2
+04/10/2025,6,5
+05/10/2025,3,6
+06/10/2025,3,3
+07/10/2025,1,4
+08/10/2025,2,4
+09/10/2025,4,4
+10/10/2025,0,2
+11/10/2025,6,4
+12/10/2025,6,4
+13/10/2025,5,3
+14/10/2025,4,4
+15/10/2025,2,4
+16/10/2025,2,2
+17/10/2025,0,1
+18/10/2025,1,4
+19/10/2025,2,5
+20/10/2025,0,5
+21/10/2025,0,4
+22/10/2025,1,4
+23/10/2025,1,3
+24/10/2025,0,2
+25/10/2025,1,2
+26/10/2025,1,4
+27/10/2025,1,1
+28/10/2025,0,1
+29/10/2025,0,2
+30/10/2025,0,2
+31/10/2025,0,2
+        `.trim()
+      },
+
+      "OCTOBER 2025 — SOHO": {
+        location: "AROUNDNOON SOHO",
+        columns: ["Date", "Production", "Dispatch", "Prep", "Goods In", "Hygiene"],
+        data: `
+01/10/2025,34,6,6,2,5
+02/10/2025,21,6,5,1,3
+03/10/2025,3,8,3,2,3
+04/10/2025,33,6,4,6,8
+05/10/2025,24,5,4,2,6
+06/10/2025,39,9,6,3,4
+07/10/2025,32,4,3,1,8
+08/10/2025,15,2,2,2,4
+09/10/2025,12,0,5,1,4
+10/10/2025,6,4,5,3,4
+11/10/2025,31,6,5,6,7
+12/10/2025,31,4,3,3,5
+13/10/2025,39,10,4,3,4
+14/10/2025,36,1,3,1,6
+15/10/2025,19,0,3,2,3
+16/10/2025,11,0,2,2,6
+17/10/2025,10,5,5,5,4
+18/10/2025,29,4,5,6,8
+19/10/2025,28,2,0,2,6
+20/10/2025,43,6,2,4,5
+21/10/2025,19,6,0,2,5
+22/10/2025,27,7,1,4,4
+23/10/2025,10,7,0,1,6
+24/10/2025,0,0,3,2,4
+25/10/2025,29,3,2,5,7
+26/10/2025,10,2,2,3,6
+27/10/2025,34,6,2,2,5
+28/10/2025,7,0,2,1,5
+29/10/2025,13,0,1,2,5
+30/10/2025,11,5,3,1,6
+31/10/2025,18,2,6,4,4
+        `.trim()
+      },
+
+      "OCTOBER 2025 — NEWRY": {
+        location: "AROUNDNOON NEWRY",
+        columns: ["Date", "Production"],
+        data: `
+01/10/2025,13
+02/10/2025,12
+03/10/2025,8
+04/10/2025,3
+05/10/2025,9
+06/10/2025,10
+07/10/2025,10
+08/10/2025,11
+09/10/2025,11
+10/10/2025,8
+11/10/2025,2
+12/10/2025,9
+13/10/2025,9
+14/10/2025,12
+15/10/2025,11
+16/10/2025,10
+17/10/2025,11
+18/10/2025,7
+19/10/2025,0
+20/10/2025,9
+21/10/2025,9
+22/10/2025,7
+23/10/2025,9
+24/10/2025,8
+25/10/2025,2
+26/10/2025,7
+27/10/2025,11
+28/10/2025,10
+29/10/2025,9
+30/10/2025,6
+31/10/2025,8
+        `.trim()
+      },
+
+      "NOVEMBER 2025 — SLOUGH": {
+        location: "AROUNDNOON SLOUGH",
+        columns: ["Date", "Production", "Warehouse", "Hygiene"],
+        data: `
+01/11/2025,0,0,2
+02/11/2025,0,0,1
+03/11/2025,0,0,3
+04/11/2025,0,0,2
+05/11/2025,0,0,5
+06/11/2025,0,0,1
+07/11/2025,0,0,1
+08/11/2025,0,0,1
+09/11/2025,0,0,3
+10/11/2025,0,0,1
+11/11/2025,0,0,3
+12/11/2025,0,0,2
+13/11/2025,0,0,3
+14/11/2025,0,0,2
+15/11/2025,0,4,3
+16/11/2025,0,4,3
+17/11/2025,0,4,3
+18/11/2025,0,3,3
+19/11/2025,0,1,3
+20/11/2025,0,0,3
+21/11/2025,0,2,3
+22/11/2025,0,1,3
+23/11/2025,0,2,3
+24/11/2025,0,3,3
+25/11/2025,0,1,2
+26/11/2025,0,2,3
+27/11/2025,0,3,2
+28/11/2025,0,3,3
+29/11/2025,0,2,2
+30/11/2025,0,3,2
+        `.trim()
+      },
+
+      "NOVEMBER 2025 — SOHO": {
+        location: "AROUNDNOON SOHO",
+        columns: ["Date", "Production", "Dispatch", "Prep", "Goods In", "Hygiene"],
+        data: `
+01/11/2025,36,7,2,5,7
+02/11/2025,28,7,0,4,6
+03/11/2025,46,8,3,3,5
+04/11/2025,38,4,2,1,9
+05/11/2025,25,3,2,3,7
+06/11/2025,22,5,3,2,6
+07/11/2025,0,1,4,3,4
+08/11/2025,35,7,2,5,7
+09/11/2025,30,4,2,2,5
+10/11/2025,47,11,3,4,5
+11/11/2025,37,4,2,1,9
+12/11/2025,21,1,2,2,7
+13/11/2025,17,2,2,2,5
+14/11/2025,7,4,2,3,4
+15/11/2025,35,7,5,6,6
+16/11/2025,27,6,1,2,5
+17/11/2025,45,8,2,3,4
+18/11/2025,36,3,3,1,6
+19/11/2025,19,3,3,2,7
+20/11/2025,16,5,3,2,5
+21/11/2025,7,1,2,3,5
+22/11/2025,35,5,5,4,6
+23/11/2025,29,6,3,2,6
+24/11/2025,36,7,6,3,6
+25/11/2025,38,2,2,2,8
+26/11/2025,14,2,3,2,5
+27/11/2025,17,5,3,1,6
+28/11/2025,1,0,1,3,3
+29/11/2025,42,6,3,5,7
+30/11/2025,40,6,2,2,7
+        `.trim()
+      },
+
+      "NOVEMBER 2025 — NEWRY": {
+        location: "AROUNDNOON NEWRY",
+        columns: ["Date", "Production"],
+        data: `
+01/11/2025,2
+02/11/2025,10
+03/11/2025,12
+04/11/2025,10
+05/11/2025,8
+06/11/2025,9
+07/11/2025,9
+08/11/2025,1
+09/11/2025,9
+10/11/2025,12
+11/11/2025,12
+12/11/2025,10
+13/11/2025,11
+14/11/2025,8
+15/11/2025,4
+16/11/2025,11
+17/11/2025,12
+18/11/2025,12
+19/11/2025,10
+20/11/2025,11
+21/11/2025,8
+22/11/2025,2
+23/11/2025,10
+24/11/2025,12
+25/11/2025,13
+26/11/2025,13
+27/11/2025,11
+28/11/2025,8
+29/11/2025,1
+30/11/2025,10
+        `.trim()
+      }
+    };
+
+    /******************************************************************
+     * APP STATE
+     ******************************************************************/
+    const state = {
+      allRows: [],      // unified long-format
+      filteredRows: [],
+      filters: {
+        dateStart: null,
+        dateEnd: null,
+        month: "All",
+        week: "All",
+        location: "All",
+        department: "All"
+      },
+      toggles: {
+        deptBreakdown: false,
+        trendBreakdown: false
+      },
+      table: {
+        search: "",
+        sortKey: "date",
+        sortDir: "asc",
+        page: 1,
+        pageSize: 25
+      },
+      charts: {
+        pie: null,
+        dept: null,
+        trend: null,
+        topDays: null
+      }
+    };
+
+    /******************************************************************
+     * UTILITIES
+     ******************************************************************/
+    const MONTH_NAMES = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+    function pad2(n) { return String(n).padStart(2, "0"); }
+
+    function ddmmyyyyToISO(ddmmyyyy) {
+      // Input: "01/08/2025" -> "2025-08-01"
+      const [dd, mm, yyyy] = ddmmyyyy.split("/").map(s => s.trim());
+      return `${yyyy}-${pad2(mm)}-${pad2(dd)}`;
+    }
+
+    function isoToDateObj(iso) {
+      // Safe local date (no timezone surprises): parse components
+      const [y, m, d] = iso.split("-").map(Number);
+      return new Date(y, m - 1, d);
+    }
+
+    function monthNameFromISO(iso) {
+      const d = isoToDateObj(iso);
+      return MONTH_NAMES[d.getMonth()];
+    }
+
+    function weekLabelFromISO(iso) {
+      const d = isoToDateObj(iso);
+      const day = d.getDate();
+      if (day <= 7) return "Week 1";
+      if (day <= 14) return "Week 2";
+      if (day <= 21) return "Week 3";
+      if (day <= 28) return "Week 4";
+      return "Week 5";
+    }
+
+    function toNumberTreatBlankAsZero(x) {
+      // Blank/missing => 0; explicit "0" stays 0; numeric strings parsed
+      if (x === undefined || x === null) return 0;
+      const s = String(x).trim();
+      if (s === "") return 0;
+      const n = Number(s);
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function uniq(arr) {
+      return Array.from(new Set(arr));
+    }
+
+    function sum(arr) {
+      let t = 0;
+      for (const v of arr) t += v;
+      return t;
+    }
+
+    function fmtInt(n) {
+      return new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 }).format(n);
+    }
+
+    function nowStamp() {
+      const d = new Date();
+      return d.toLocaleString("en-GB", { year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    }
+
+    /******************************************************************
+     * 1) parseRawTables()
+     * Parse the raw “wide tables” embedded above into a structured array:
+     * [{ location, columns, rows: [{Date, ...deptValues}] }]
+     ******************************************************************/
+    function parseRawTables(rawWideTables) {
+      const parsed = [];
+
+      for (const [tableName, table] of Object.entries(rawWideTables)) {
+        const { location, columns, data } = table;
+        const lines = data
+          .split("\n")
+          .map(l => l.trim())
+          .filter(l => l.length > 0);
+
+        const rows = lines.map(line => {
+          // Split by comma, keep empties; then trim
+          const parts = line.split(",").map(p => p.trim());
+          // Pad to columns length
+          while (parts.length < columns.length) parts.push("");
+          // Build object
+          const obj = {};
+          for (let i = 0; i < columns.length; i++) {
+            obj[columns[i]] = parts[i] ?? "";
+          }
+          return obj;
+        });
+
+        parsed.push({ tableName, location, columns, rows });
+      }
+
+      return parsed;
+    }
+
+    /******************************************************************
+     * 2) normalizeToLongFormat()
+     * Convert wide parsed tables -> unified long-format array:
+     * { date:"YYYY-MM-DD", month:"August", week:"Week 1", location, department, value }
+     ******************************************************************/
+    function normalizeToLongFormat(parsedTables) {
+      const out = [];
+
+      for (const t of parsedTables) {
+        const { location, columns, rows } = t;
+        const deptCols = columns.filter(c => c !== "Date");
+
+        for (const r of rows) {
+          const iso = ddmmyyyyToISO(r.Date);
+
+          const month = monthNameFromISO(iso);
+          const week = weekLabelFromISO(iso);
+
+          for (const dept of deptCols) {
+            const value = toNumberTreatBlankAsZero(r[dept]);
+            out.push({
+              date: iso,
+              month,
+              week,
+              location,
+              department: dept,
+              value
+            });
+          }
+        }
+      }
+
+      return out;
+    }
+
+    /******************************************************************
+     * fetchData()
+     * Simulated polling source (every 10s).
+     *
+     * HOW TO SWITCH TO A REAL API LATER:
+     * - Replace the body of fetchData() with:
+     *   1) REST JSON:
+     *      const res = await fetch("https://your-api/staff-supplied");
+     *      return await res.json(); // must return long-format rows OR raw wide tables
+     *   2) WebSocket:
+     *      open WS, update state.allRows on message, then renderAll()
+     *
+     * For now, we rebuild from embedded RAW_WIDE_TABLES (in-memory).
+     ******************************************************************/
+    async function fetchData() {
+      // Simulate network delay
+      await new Promise(r => setTimeout(r, 80));
+
+      // Return parsed long-format from embedded tables (authoritative source)
+      const parsed = parseRawTables(RAW_WIDE_TABLES);
+      const long = normalizeToLongFormat(parsed);
+      return long;
+    }
+
+    /******************************************************************
+     * 3) applyFilters()
+     ******************************************************************/
+    function applyFilters(rows, filters) {
+      const start = filters.dateStart ? isoToDateObj(filters.dateStart).getTime() : -Infinity;
+      const end = filters.dateEnd ? isoToDateObj(filters.dateEnd).getTime() : Infinity;
+
+      return rows.filter(r => {
+        const t = isoToDateObj(r.date).getTime();
+        if (t < start || t > end) return false;
+
+        if (filters.month !== "All" && r.month !== filters.month) return false;
+        if (filters.week !== "All" && r.week !== filters.week) return false;
+        if (filters.location !== "All" && r.location !== filters.location) return false;
+        if (filters.department !== "All" && r.department !== filters.department) return false;
+
+        return true;
+      });
+    }
+
+    /******************************************************************
+     * 4) computeKPIs()
+     ******************************************************************/
+    function computeKPIs(rows) {
+      const total = sum(rows.map(r => r.value));
+
+      // Active locations/departments: consider any value > 0
+      const activeLocs = new Set();
+      const activeDepts = new Set();
+      const activeDays = new Set();
+
+      // Aggregate by date total to determine active day
+      const byDate = new Map();
+
+      for (const r of rows) {
+        if (r.value > 0) {
+          activeLocs.add(r.location);
+          activeDepts.add(r.department);
+        }
+        byDate.set(r.date, (byDate.get(r.date) || 0) + r.value);
+      }
+      for (const [date, v] of byDate.entries()) {
+        if (v > 0) activeDays.add(date);
+      }
+
+      return {
+        total,
+        locations: activeLocs.size,
+        departments: activeDepts.size,
+        activeDays: activeDays.size
+      };
+    }
+
+    /******************************************************************
+     * Chart helpers
+     ******************************************************************/
+    function groupSum(rows, keyFn) {
+      const m = new Map();
+      for (const r of rows) {
+        const k = keyFn(r);
+        m.set(k, (m.get(k) || 0) + r.value);
+      }
+      return m;
+    }
+
+    function sortedEntriesDesc(map) {
+      return Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+    }
+
+    function ensureChart(domId, existing) {
+      const el = document.getElementById(domId);
+      if (!existing) return echarts.init(el, null, { renderer: "canvas" });
+      return existing;
+    }
+
+    /******************************************************************
+     * 5) buildCharts()
+     ******************************************************************/
+    function buildCharts(rows) {
+      // Prepare instances
+      state.charts.pie = ensureChart("chartPie", state.charts.pie);
+      state.charts.dept = ensureChart("chartDept", state.charts.dept);
+      state.charts.trend = ensureChart("chartTrend", state.charts.trend);
+      state.charts.topDays = ensureChart("chartTopDays", state.charts.topDays);
+
+      // --- PIE: Location-wise contribution
+      const locMap = groupSum(rows, r => r.location);
+      const locData = sortedEntriesDesc(locMap).map(([name, value]) => ({ name, value }));
+      const pieTotal = sum(locData.map(d => d.value));
+
+      state.charts.pie.setOption({
+        tooltip: { trigger: "item", formatter: (p) => `${p.name}<br/>Supplied: <b>${fmtInt(p.value)}</b><br/>Share: <b>${p.percent}%</b>` },
+        legend: { type: "scroll", bottom: 0 },
+        series: [{
+          type: "pie",
+          radius: ["45%", "70%"],
+          avoidLabelOverlap: true,
+          itemStyle: { borderRadius: 8, borderColor: "#fff", borderWidth: 2 },
+          label: { show: true, formatter: "{b}\n{d}%" },
+          emphasis: { label: { show: true, fontSize: 14, fontWeight: "bold" } },
+          data: locData
+        }],
+        graphic: [{
+          type: "text",
+          left: "center",
+          top: "center",
+          style: {
+            text: `Total\n${fmtInt(pieTotal)}`,
+            textAlign: "center",
+            fontSize: 14,
+            fontWeight: 700,
+            fill: "#0f172a"
+          }
+        }]
+      }, { notMerge: true });
+
+      // --- BAR: Department-wise view
+      const deptBreakdown = state.toggles.deptBreakdown;
+      const allDepts = uniq(rows.map(r => r.department)).sort((a,b) => a.localeCompare(b));
+      const allLocs = uniq(rows.map(r => r.location)).sort((a,b) => a.localeCompare(b));
+
+      if (!deptBreakdown) {
+        const deptMap = groupSum(rows, r => r.department);
+        const deptSorted = sortedEntriesDesc(deptMap);
+        const x = deptSorted.map(d => d[0]);
+        const y = deptSorted.map(d => d[1]);
+
+        state.charts.dept.setOption({
+          tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+          grid: { left: 40, right: 20, top: 30, bottom: 70, containLabel: true },
+          xAxis: { type: "category", data: x, axisLabel: { rotate: 25 } },
+          yAxis: { type: "value" },
+          series: [{
+            type: "bar",
+            data: y,
+            barMaxWidth: 48
+          }]
+        }, { notMerge: true });
+      } else {
+        // x-axis: departments, series: each location
+        const x = allDepts;
+        const series = allLocs.map(loc => {
+          const locRows = rows.filter(r => r.location === loc);
+          const map = groupSum(locRows, r => r.department);
+          return {
+            name: loc,
+            type: "bar",
+            barMaxWidth: 36,
+            data: x.map(dept => map.get(dept) || 0)
+          };
+        });
+
+        state.charts.dept.setOption({
+          tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+          legend: { type: "scroll", bottom: 0 },
+          grid: { left: 40, right: 20, top: 30, bottom: 80, containLabel: true },
+          xAxis: { type: "category", data: x, axisLabel: { rotate: 25 } },
+          yAxis: { type: "value" },
+          series
+        }, { notMerge: true });
+      }
+
+      // --- LINE/AREA: Daily trend
+      const trendBreakdown = state.toggles.trendBreakdown;
+      const dates = uniq(rows.map(r => r.date)).sort(); // ISO sorts chronologically
+
+      if (!trendBreakdown) {
+        const byDate = groupSum(rows, r => r.date);
+        const y = dates.map(d => byDate.get(d) || 0);
+
+        state.charts.trend.setOption({
+          tooltip: { trigger: "axis" },
+          grid: { left: 40, right: 20, top: 30, bottom: 50, containLabel: true },
+          xAxis: { type: "category", data: dates, axisLabel: { formatter: (v) => v.slice(5) } },
+          yAxis: { type: "value" },
+          series: [{
+            type: "line",
+            data: y,
+            smooth: true,
+            areaStyle: {}
+          }]
+        }, { notMerge: true });
+      } else {
+        const series = allLocs.map(loc => {
+          const locRows = rows.filter(r => r.location === loc);
+          const byDate = groupSum(locRows, r => r.date);
+          return {
+            name: loc,
+            type: "line",
+            data: dates.map(d => byDate.get(d) || 0),
+            smooth: true
+          };
+        });
+
+        state.charts.trend.setOption({
+          tooltip: { trigger: "axis" },
+          legend: { type: "scroll", bottom: 0 },
+          grid: { left: 40, right: 20, top: 30, bottom: 70, containLabel: true },
+          xAxis: { type: "category", data: dates, axisLabel: { formatter: (v) => v.slice(5) } },
+          yAxis: { type: "value" },
+          series
+        }, { notMerge: true });
+      }
+
+      // --- BAR: Top 10 days by total supplied
+      const byDateTotals = groupSum(rows, r => r.date);
+      const top10 = sortedEntriesDesc(byDateTotals).slice(0, 10);
+      const topDates = top10.map(([d]) => d).reverse();
+      const topVals = top10.map(([,v]) => v).reverse();
+
+      state.charts.topDays.setOption({
+        tooltip: { trigger: "axis", axisPointer: { type: "shadow" } },
+        grid: { left: 40, right: 20, top: 30, bottom: 50, containLabel: true },
+        xAxis: { type: "value" },
+        yAxis: { type: "category", data: topDates, axisLabel: { formatter: (v) => v } },
+        series: [{
+          type: "bar",
+          data: topVals,
+          barMaxWidth: 32
+        }]
+      }, { notMerge: true });
+    }
+
+    /******************************************************************
+     * 6) buildTable()
+     * Vanilla: search, sort, paginate, export CSV.
+     ******************************************************************/
+    function buildTable(rows) {
+      // Apply search
+      const q = state.table.search.trim().toLowerCase();
+      let view = rows;
+
+      if (q) {
+        view = rows.filter(r => {
+          const hay = `${r.date} ${r.month} ${r.week} ${r.location} ${r.department} ${r.value}`.toLowerCase();
+          return hay.includes(q);
+        });
+      }
+
+      // Sort
+      const { sortKey, sortDir } = state.table;
+      const dirMul = sortDir === "asc" ? 1 : -1;
+
+      view = view.slice().sort((a, b) => {
+        let va = a[sortKey];
+        let vb = b[sortKey];
+
+        if (sortKey === "value") {
+          va = Number(va); vb = Number(vb);
+          return (va - vb) * dirMul;
+        }
+        // Date is ISO string -> lexical sort ok
+        if (typeof va === "string" && typeof vb === "string") {
+          return va.localeCompare(vb) * dirMul;
+        }
+        return 0;
+      });
+
+      // Pagination
+      const pageSize = state.table.pageSize;
+      const total = view.length;
+      const totalPages = Math.max(1, Math.ceil(total / pageSize));
+      state.table.page = Math.min(state.table.page, totalPages);
+
+      const page = state.table.page;
+      const start = (page - 1) * pageSize;
+      const end = start + pageSize;
+      const slice = view.slice(start, end);
+
+      // Render rows
+      const tbody = document.getElementById("tableBody");
+      tbody.innerHTML = "";
+
+      for (const r of slice) {
+        const tr = document.createElement("tr");
+        tr.className = "hover:bg-slate-50";
+        tr.innerHTML = `
+          <td class="px-3 py-2 whitespace-nowrap">${r.date}</td>
+          <td class="px-3 py-2 whitespace-nowrap">${r.month}</td>
+          <td class="px-3 py-2 whitespace-nowrap">${r.week}</td>
+          <td class="px-3 py-2 whitespace-nowrap">${r.location}</td>
+          <td class="px-3 py-2 whitespace-nowrap">${r.department}</td>
+          <td class="px-3 py-2 whitespace-nowrap text-right font-semibold">${fmtInt(r.value)}</td>
+        `;
+        tbody.appendChild(tr);
+      }
+
+      // Info + controls
+      document.getElementById("tableInfo").textContent =
+        total === 0
+          ? "No rows match the current filters/search."
+          : `Showing ${start + 1}–${Math.min(end, total)} of ${total} rows`;
+
+      document.getElementById("pageIndicator").textContent = `Page ${page} of ${totalPages}`;
+      document.getElementById("prevPage").disabled = page <= 1;
+      document.getElementById("nextPage").disabled = page >= totalPages;
+
+      // Sort icons
+      const keys = ["date","month","week","location","department","value"];
+      for (const k of keys) {
+        const el = document.getElementById(`sortIcon-${k}`);
+        if (!el) continue;
+        if (k !== sortKey) { el.textContent = ""; continue; }
+        el.textContent = sortDir === "asc" ? " ▲" : " ▼";
+      }
+
+      // Store a copy for CSV export (full "view", not just page)
+      state.table._lastViewForExport = view;
+    }
+
+    function exportToCSV(rows) {
+      const header = ["Date","Month","Week","Location","Department","Staff Supplied"];
+      const lines = [header.join(",")];
+
+      for (const r of rows) {
+        const row = [
+          r.date,
+          r.month,
+          r.week,
+          `"${String(r.location).replaceAll('"','""')}"`,
+          `"${String(r.department).replaceAll('"','""')}"`,
+          String(r.value)
+        ];
+        lines.push(row.join(","));
+      }
+
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "staff-supplied-export.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    /******************************************************************
+     * 7) renderAll()
+     ******************************************************************/
+    function renderAll() {
+      state.filteredRows = applyFilters(state.allRows, state.filters);
+
+      // KPIs
+      const kpis = computeKPIs(state.filteredRows);
+      document.getElementById("kpiTotal").textContent = fmtInt(kpis.total);
+      document.getElementById("kpiLocations").textContent = fmtInt(kpis.locations);
+      document.getElementById("kpiDepts").textContent = fmtInt(kpis.departments);
+      document.getElementById("kpiDays").textContent = fmtInt(kpis.activeDays);
+
+      // Charts
+      buildCharts(state.filteredRows);
+
+      // Table
+      buildTable(state.filteredRows);
+    }
+
+    /******************************************************************
+     * Populate slicers
+     ******************************************************************/
+    function setSelectOptions(selectEl, options, includeAll = true) {
+      selectEl.innerHTML = "";
+      if (includeAll) {
+        const opt = document.createElement("option");
+        opt.value = "All";
+        opt.textContent = "All";
+        selectEl.appendChild(opt);
+      }
+      for (const o of options) {
+        const opt = document.createElement("option");
+        opt.value = o;
+        opt.textContent = o;
+        selectEl.appendChild(opt);
+      }
+    }
+
+    function setUpControls() {
+      const dateStart = document.getElementById("dateStart");
+      const dateEnd = document.getElementById("dateEnd");
+      const monthSelect = document.getElementById("monthSelect");
+      const weekSelect = document.getElementById("weekSelect");
+      const locationSelect = document.getElementById("locationSelect");
+      const deptSelect = document.getElementById("deptSelect");
+
+      // Derive option sets from ALL rows
+      const months = uniq(state.allRows.map(r => r.month))
+        .filter(m => ["August","September","October","November"].includes(m))
+        .sort((a,b) => MONTH_NAMES.indexOf(a) - MONTH_NAMES.indexOf(b));
+
+      const weeks = ["Week 1","Week 2","Week 3","Week 4","Week 5"];
+      const locations = uniq(state.allRows.map(r => r.location)).sort((a,b) => a.localeCompare(b));
+      const depts = uniq(state.allRows.map(r => r.department)).sort((a,b) => a.localeCompare(b));
+
+      setSelectOptions(monthSelect, months, true);
+      setSelectOptions(weekSelect, weeks, true);
+      setSelectOptions(locationSelect, locations, true);
+      setSelectOptions(deptSelect, depts, true);
+
+      // Date bounds from data
+      const allDates = uniq(state.allRows.map(r => r.date)).sort();
+      const minDate = allDates[0];
+      const maxDate = allDates[allDates.length - 1];
+
+      dateStart.min = minDate; dateStart.max = maxDate;
+      dateEnd.min = minDate; dateEnd.max = maxDate;
+
+      // Defaults (full range)
+      state.filters.dateStart = minDate;
+      state.filters.dateEnd = maxDate;
+      dateStart.value = minDate;
+      dateEnd.value = maxDate;
+
+      // Bind events
+      dateStart.addEventListener("change", () => {
+        state.filters.dateStart = dateStart.value || minDate;
+        // keep end >= start
+        if (dateEnd.value && dateEnd.value < dateStart.value) {
+          dateEnd.value = dateStart.value;
+          state.filters.dateEnd = dateEnd.value;
+        }
+        state.table.page = 1;
+        renderAll();
+      });
+
+      dateEnd.addEventListener("change", () => {
+        state.filters.dateEnd = dateEnd.value || maxDate;
+        // keep end >= start
+        if (dateStart.value && dateEnd.value < dateStart.value) {
+          dateStart.value = dateEnd.value;
+          state.filters.dateStart = dateStart.value;
+        }
+        state.table.page = 1;
+        renderAll();
+      });
+
+      monthSelect.addEventListener("change", () => {
+        state.filters.month = monthSelect.value;
+        state.table.page = 1;
+        renderAll();
+      });
+
+      weekSelect.addEventListener("change", () => {
+        state.filters.week = weekSelect.value;
+        state.table.page = 1;
+        renderAll();
+      });
+
+      locationSelect.addEventListener("change", () => {
+        state.filters.location = locationSelect.value;
+        state.table.page = 1;
+        renderAll();
+      });
+
+      deptSelect.addEventListener("change", () => {
+        state.filters.department = deptSelect.value;
+        state.table.page = 1;
+        renderAll();
+      });
+
+      document.getElementById("resetBtn").addEventListener("click", () => {
+        // Reset slicers to defaults
+        state.filters.month = "All";
+        state.filters.week = "All";
+        state.filters.location = "All";
+        state.filters.department = "All";
+        state.filters.dateStart = minDate;
+        state.filters.dateEnd = maxDate;
+
+        monthSelect.value = "All";
+        weekSelect.value = "All";
+        locationSelect.value = "All";
+        deptSelect.value = "All";
+        dateStart.value = minDate;
+        dateEnd.value = maxDate;
+
+        // Reset toggles? (keep as-is; feels more “Looker-like”)
+        // Reset table
+        state.table.search = "";
+        state.table.sortKey = "date";
+        state.table.sortDir = "asc";
+        state.table.page = 1;
+        document.getElementById("tableSearch").value = "";
+
+        renderAll();
+      });
+
+      // Toggles
+      const toggleDept = document.getElementById("toggleDeptBreakdown");
+      const toggleTrend = document.getElementById("toggleTrendBreakdown");
+
+      toggleDept.addEventListener("change", () => {
+        state.toggles.deptBreakdown = toggleDept.checked;
+        renderAll();
+      });
+
+      toggleTrend.addEventListener("change", () => {
+        state.toggles.trendBreakdown = toggleTrend.checked;
+        renderAll();
+      });
+
+      // Table controls
+      const tableSearch = document.getElementById("tableSearch");
+      tableSearch.addEventListener("input", () => {
+        state.table.search = tableSearch.value;
+        state.table.page = 1;
+        buildTable(state.filteredRows);
+      });
+
+      const pageSize = document.getElementById("pageSize");
+      pageSize.addEventListener("change", () => {
+        state.table.pageSize = Number(pageSize.value);
+        state.table.page = 1;
+        buildTable(state.filteredRows);
+      });
+
+      document.getElementById("prevPage").addEventListener("click", () => {
+        state.table.page = Math.max(1, state.table.page - 1);
+        buildTable(state.filteredRows);
+      });
+
+      document.getElementById("nextPage").addEventListener("click", () => {
+        state.table.page += 1;
+        buildTable(state.filteredRows);
+      });
+
+      // Sorting by clicking header
+      document.querySelectorAll("thead th[data-sort]").forEach(th => {
+        th.addEventListener("click", () => {
+          const key = th.getAttribute("data-sort");
+          if (state.table.sortKey === key) {
+            state.table.sortDir = state.table.sortDir === "asc" ? "desc" : "asc";
+          } else {
+            state.table.sortKey = key;
+            state.table.sortDir = key === "value" ? "desc" : "asc";
+          }
+          state.table.page = 1;
+          buildTable(state.filteredRows);
+        });
+      });
+
+      document.getElementById("exportCsvBtn").addEventListener("click", () => {
+        const rowsForExport = state.table._lastViewForExport || state.filteredRows;
+        exportToCSV(rowsForExport);
+      });
+
+      // Resize charts on window resize
+      window.addEventListener("resize", () => {
+        for (const c of Object.values(state.charts)) {
+          if (c && typeof c.resize === "function") c.resize();
+        }
+      });
+    }
+
+    /******************************************************************
+     * 8) startAutoRefresh()
+     ******************************************************************/
+    function startAutoRefresh() {
+      // Poll every 10 seconds (simulation)
+      setInterval(async () => {
+        const newRows = await fetchData();
+        state.allRows = newRows;
+
+        // Keep current filters; if date range is now out-of-bounds, clamp
+        const dates = uniq(state.allRows.map(r => r.date)).sort();
+        const minDate = dates[0];
+        const maxDate = dates[dates.length - 1];
+
+        const ds = state.filters.dateStart || minDate;
+        const de = state.filters.dateEnd || maxDate;
+
+        if (ds < minDate) state.filters.dateStart = minDate;
+        if (de > maxDate) state.filters.dateEnd = maxDate;
+
+        // Update UI date bounds silently (don’t override user-selected values unless invalid)
+        const dateStart = document.getElementById("dateStart");
+        const dateEnd = document.getElementById("dateEnd");
+        dateStart.min = minDate; dateStart.max = maxDate;
+        dateEnd.min = minDate; dateEnd.max = maxDate;
+        if (!dateStart.value || dateStart.value < minDate) dateStart.value = state.filters.dateStart;
+        if (!dateEnd.value || dateEnd.value > maxDate) dateEnd.value = state.filters.dateEnd;
+
+        document.getElementById("lastRefresh").textContent = nowStamp();
+        renderAll();
+      }, 10_000);
+    }
+
+    /******************************************************************
+     * INIT
+     ******************************************************************/
+    (async function init() {
+      state.allRows = await fetchData();
+      document.getElementById("lastRefresh").textContent = nowStamp();
+
+      setUpControls();
+      renderAll();
+      startAutoRefresh();
+    })();
+  </script>
+</body>
+</html>
